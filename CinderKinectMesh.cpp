@@ -179,15 +179,15 @@ void kinectMesh::updateMesh() {
 	for (int y = 0; y < MESH_Y_RES; ++y) {
 		for (int x = 0; x < MESH_X_RES; ++x) {
 
-			//if (x > MESH_X_RES / 2 || y > MESH_Y_RES / 2) continue;
 
-			int depth = mDepthData.get()[x * MESH_Y_RES + y];
+			int depth = mDepthData.get()[x * MESH_DIV * KINECT_Y_RES + y * MESH_DIV];
 
 			float zPos = zValues[mMinDepth];
 			if (mMinDepth <= depth && depth <= mMaxDepth) {
 				zPos = zValues[depth];
+				mMesh.appendPosition(vec3(xValues[x], yValues[y], zPos));
+				mMesh.appendColorRgb(depthColors[depth]);
 			}
-			mMesh.appendPosition(vec3(xValues[x], yValues[y], zPos));
 //			   if (showTexture) {
 //			     if (showInfrared)
 //			       mMesh.appendTexCoord( vec2((float)x/(float)MESH_X_RES, (float)y/(float)MESH_Y_RES) );
@@ -195,7 +195,6 @@ void kinectMesh::updateMesh() {
 //			       mMesh.appendTexCoord( vec2((float)x/(float)MESH_X_RES+mTexOffsetX, (float)y/(float)MESH_Y_RES+mTexOffsetY) );
 //			   } else {
 			// Rainbow mesh
-			mMesh.appendColorRgb(depthColors[depth]);
 //			   }
 
 			if (x > 0 && y > 0) {
@@ -274,19 +273,22 @@ void kinectMesh::draw() {
 
 std::shared_ptr<uint16_t> kinectMesh::getDepthData() {
 	const int PLANEDEPTH = 50000;
-	std::shared_ptr<uint16_t> depthData(new uint16_t[MESH_X_RES * MESH_Y_RES]);
+	std::shared_ptr<uint16_t> depthData(new uint16_t[KINECT_X_RES * KINECT_Y_RES]);
 	int depth;
 	//std::shared_ptr<uint16_t> depthData = new std::shared_ptr<uint16_t>[MESH_X_RES*MESH_Y_RES];
 
-	for (int i = 0; i < MESH_X_RES; ++i)
-		for (int j = 0; j < MESH_Y_RES; ++j) {
-			if (i > MESH_X_RES / 6 && i < 5 * MESH_X_RES / 6) {
-				depth = PLANEDEPTH;
+	for (int i = 0; i < KINECT_X_RES; ++i)
+		for (int j = 0; j < KINECT_Y_RES; ++j) {
+			depth = 0;
+			if (i > KINECT_X_RES / 6 && i < 5 * KINECT_X_RES / 6 && j > KINECT_Y_RES / 6 && j < 5 * KINECT_Y_RES / 6) {
 
+				int x2 = (KINECT_X_RES / 2 - i) * (KINECT_X_RES / 2 - i);
+				int y2 = (KINECT_Y_RES / 2 - j) * (KINECT_Y_RES / 2 - j);
+				depth = PLANEDEPTH - x2 / 3 - y2 / 3;
 			}
 
 			//if (i < MESH_X_RES / 2 && j < MESH_Y_RES / 2)
-			depthData.get()[i * MESH_Y_RES + j] = static_cast<uint16_t>(PLANEDEPTH - i * 40 - j * 40);
+			depthData.get()[i * KINECT_Y_RES + j] = static_cast<uint16_t>(depth);
 		}
 	return depthData;
 }
